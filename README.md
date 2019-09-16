@@ -365,7 +365,7 @@ Content-Type:application/json
   }
 }
 ````
->You can also JUST honk the horn, by changing "lights" to "false" (no quotation marks) in your submitted JSON payload, or you can JUST flash the lights, by changing "horn" to "false" (no quotation marks).
+>You can also JUST honk the horn, by changing the JSON to `"lights": false`, or you can JUST flash the lights by changing the JSON to `"horn": false`.
 
 ### Stop Charging
 #### Request
@@ -423,11 +423,16 @@ Content-Type:application/json
 > The values that the API will accept for "max_charge_current" probably differ depending on your vehicle, but I happen to know that for the 2016 eGolf SE (w/ the optional DC Fast Charging package) the acceptable values of "max_charge_current" are 5, 10, 13, and "max". 
 #### Response
 ````
-(TODO)
+{
+  "value": {
+    "transaction_id": "...",
+    "command": "set_max_charge_current"
+  }
+}
 ````
 
 ### Turning On/Off Climate Control and Adjusting Target Temperature
-If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to "true" you can adjust the climate control with the API. 
+If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can adjust the climate control with the API. 
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/climate
@@ -438,13 +443,20 @@ Content-Type:application/json
   "target_temperature": 72
 }
 ````
-> Issue the same request but with "active" set to "false" (no quotation marks) to turn **off** climate control. 
+> Issue the same request but with `"active": false` to turn **off** climate control. 
 
 >"target_temperature" is the number in fahrenheit (at least for me) that one would set as the temperature they want the interior of the car to be. I have not tested the limits of what is an acceptable range of values for "target_temperature".
 #### Response
 ````
-** TO-DO **
+{
+  "value": {
+    "transaction_id": "...",
+    "command": "start_climate"
+  }
+}
 ````
+> If you issued that request as `"active": false` the "command" value would've been returned as "stop_climate". 
+
 ### Turning On/Off Defroster
 You can remotely turn off or on the defroster. 
 > I am not totally sure if you must be plugged in, or "unplugged_climate_control_enabled" set to "true", in order to do this. I don't know if those have any consequence here. I will test further.
@@ -457,11 +469,18 @@ Content-Type:application/json
   "active": true
 }
 ````
-> Issue the same request but with "active" set to "false" (no quotation marks) to turn **off** the defroster. 
+> Issue the same request but with `"active": false` to turn **off** the defroster. 
 #### Response
 ````
-** TO-DO **
+{
+  "value": {
+    "transaction_id": "...",
+    "command": "start_defrost"
+  }
+}
 ````
+> If you issued that request as `"active": false` the "command" value would've been returned as "stop_defrost". 
+
 
 ### Enabling/Disabling Unplugged Climate Control
 ** TO-DO **
