@@ -432,7 +432,7 @@ Content-Type:application/json
 ````
 
 ### Turning On/Off Climate Control and Adjusting Target Temperature
-If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can adjust the climate control with the API. 
+If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can adjust the climate control with the API. Here's how: 
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/climate
@@ -458,8 +458,7 @@ Content-Type:application/json
 > If you issued that request as `"active": false` the "command" value would've been returned as "stop_climate". 
 
 ### Turning On/Off Defroster
-You can remotely turn off or on the defroster. 
-> I am not totally sure if you must be plugged in, or "unplugged_climate_control_enabled" set to "true", in order to do this. I don't know if those have any consequence here. I will test further.
+If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can remotely turn off or on the defroster. 
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/defrost
@@ -483,5 +482,27 @@ Content-Type:application/json
 
 
 ### Enabling/Disabling Unplugged Climate Control
-** TO-DO **
+If you have an EV and like to live dangerously, you can let your car prepare the climate for you or run the defroster even when it's not plugged in. To change this setting to allow it to use battery power to do so, here's that:
+
+#### Request
+````
+PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/settings/unplugged_climate_control
+X-CarNet-Token:{YOUR TOKEN}
+Content-Type:application/json
+{
+  "enabled": true
+}
+````
+> Issue the same request but with `"enabled": false` to turn **off** the unplugged climate control. 
+#### Response
+````
+{
+  "value": {
+    "transaction_id": "...",
+    "command": "enable_unplugged_climate_control"
+  }
+}
+````
+> If you issued that request as `"enabled": false` the "command" value would've been returned as "disable_unplugged_climate_control". 
+
 
