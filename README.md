@@ -11,8 +11,10 @@ The responses you receive from your own requests to the Car-Net API may look a l
 
 It's worth mentioning also that **I have no idea if using the API in this manner violates your terms of service with VW Car-Net. So assume the worst, and proceed at your own risk.**
 
-Please contact me [@varwwwhtml](https://twitter.com/varwwwhtml) with any questions, ideas, or thoughts regarding this subject. I'd love to know that this document helped someone start something. I have no control over this API or its behavior, but I will try and assist you.
+## Contact
+I can't offer any real support for this API, because it's not mine and I have no control over it, but contact me ([@varwwwhtml](https://twitter.com/varwwwhtml) or tom AT itsmetomsmith DOT com) if you have any questions, ideas, or thoughts regarding this subject. I'd love to know if this document helped someone start something.
 
+***
 ## Like Everything, You Start by Logging In
 You have to first log in in order to receive a token to use for the rest of your requests. But logging in is actually two steps, just like it is in the app: first to log in to your account with your email address and password, then a second level to authorize with your account number and PIN. 
 
