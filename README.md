@@ -94,13 +94,14 @@ Upon a successful login, you will receive back a JSON object containing your acc
   }
 }
 ````
->TAKE NOTE of the "token" and "id" values (your "id" is also your Car-Net account number), you will need both of these in order to complete all the other API requests detailed in this document. 
+>TAKE NOTE of the "token" and "id" values (your "id" is also your Car-Net account number), you will need both of these in order to complete all the other API requests detailed in this document.  
 
 ...then you must authorize your Car-Net account number and PIN. This secondary account/PIN authorization process must be performed in order for your token to successfully be used in any the other API requests. Trying to make API requests without doing so will result in errors. Here's how:
 #### Request 
 ````
 POST https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/auth
 Content-Type:application/json
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{THE TOKEN GIVEN TO YOU BY THE PREVIOUS RESPONSE}
 
 {
@@ -123,6 +124,8 @@ The response will be simply the expiration date/time of your token.
 
 >If any of your requests suddenly begin responding with a 500 error ("Something went wrong"), or a 403 response with "Vehicle session expired" message, simply re-perform the account/PIN authorization request, **using the same token you were first issued**. This will "refresh" the token, and issue it a new expiry time of 15 minutes in the future. You can then continue to use it for requests. In this instance, **you don't have to repeat the first email/password log in request and get a new token.** 
 
+>I notice also that including the `Cookie` header with the value `SERVERID=mps-server-001` seems to be necessary for reliable use. 
+
 ***
 
 ## View Your Vehicle's "Status"
@@ -131,6 +134,7 @@ Now that you're all logged in and authorized, you can begin poking around.  Star
 #### Request
 ````
 GET https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 ````
 
@@ -208,6 +212,7 @@ In addition to "status," you can also get a summary of the current values of eac
 #### Request
 ````
 GET https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/settings
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 ````
 It will respond with a JSON object containing your car's setting values:
@@ -308,6 +313,7 @@ Here are the functions I've mapped out so far...
 #### Lock Doors Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/exterior/doors
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 
@@ -330,6 +336,7 @@ And then to unlock...
 #### Unlock Doors Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/exterior/doors
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 
@@ -351,6 +358,7 @@ Content-Type:application/json
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/exterior/horn_and_lights
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -373,6 +381,7 @@ Content-Type:application/json
 #### Request
 ````
 PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/charging
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -395,6 +404,7 @@ Content-Type:application/json
 #### Request
 ````
 PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/charging
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -416,6 +426,7 @@ Content-Type:application/json
 #### Request 
 ````
 PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/settings/max_charge_current
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -438,6 +449,7 @@ If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/climate
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -464,6 +476,7 @@ If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/defrost
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -489,6 +502,7 @@ If you have an EV and like to live dangerously, you can let your car prepare the
 #### Request
 ````
 PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/settings/unplugged_climate_control
+Cookie:SERVERID=mps-server-001
 X-CarNet-Token:{YOUR TOKEN}
 Content-Type:application/json
 {
@@ -506,5 +520,6 @@ Content-Type:application/json
 }
 ````
 > If you issued that request as `"enabled": false` the "command" value would've been returned as "disable_unplugged_climate_control". 
-
-
+***
+## What I'd Still Like To Figure Out
+- **Minimum Battery Level** I don't understand why my car has some settings that can be changed in the Car-Net mobile app itself, and other settings for which the app has no control, and instead it instructs me to log in to the Car-Net browser app to adjust. "Minimum Battery Level" (the daftly named point to which your battery will charge, before stopping itself) is one such setting that the iOS mobile app can't natively control, but the browser app can. It would be very convenient to figure out how I can use this API to change that setting. I couldn't sniff out an endpoint for it during the mitmproxy process because of the mobile apps lack of an adjustment control for it. It's also strange that neither the /status or /settings endpoint responses include this value at all.
