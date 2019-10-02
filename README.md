@@ -206,6 +206,25 @@ The API will respond with a JSON object summarizing your vehicle's status:
   }
 }
 ````
+## Force Refresh of Vehicle Status
+Sometimes the vehicle's status that gets returned to you gets a little stale (as evident by the `timestamp` value). In order to force the API to poll the vehicle again and get an updated summary, do this: 
+
+#### Request
+````
+GET https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/fresh
+Cookie:SERVERID=mps-server-001
+X-CarNet-Token:{YOUR TOKEN}
+````
+#### Response
+````
+{
+  "value": {
+    "transaction_id": "...",
+    "command": "fetch_vehicle_status"
+  }
+}
+````
+>Just like many of the functions below, the response you get from this will just be an acknowlegment you've sent a request. In order to get back the actual updated status object, you will have to request your vehicle's status again after you make this request, and it might take a few seconds for that to begin returning the updated summary. 
 
 ## View Your Vehicle's Settings
 In addition to "status," you can also get a summary of the current values of each setting in your vehicle:
