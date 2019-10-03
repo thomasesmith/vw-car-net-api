@@ -207,7 +207,9 @@ The API will respond with a JSON object summarizing your vehicle's status:
 }
 ````
 ## Force Refresh of Vehicle Status
-Sometimes the vehicle's status that gets returned to you gets a little stale (as evident by the `timestamp` value). In order to force the API to poll the vehicle again and get an updated summary, do this: 
+Sometimes the vehicle status that gets returned is a little stale (as evident by an old `timestamp` value), but this tends to be when nothing about the car is changing much. For instance, while charging my eGolf, the /status response updates regularly and doesn't require a forced refresh, but when the car is parked in a way that nothing about the car is really changing, it lets the status response get a little old. 
+
+If you want to force the API to poll the vehicle again and get an updated summary, do the following: 
 
 #### Request
 ````
@@ -225,7 +227,10 @@ X-CarNet-Token:{YOUR TOKEN}
 }
 ````
 >Just like many of the functions below, the response you get from this will just be an acknowlegment you've sent a request. In order to get back the actual updated status object, you will have to request your vehicle's status again after you make this request, and it might take a few seconds for that to begin returning the updated summary. 
+
 >NOTE! If you make this request too frequently though, you will begin getting 429 Too Many Request errors from the server when you do it. I haven't yet figured out exactly how often is too often. 
+
+
 ## View Your Vehicle's Settings
 In addition to "status," you can also get a summary of the current values of each setting in your vehicle:
 #### Request
