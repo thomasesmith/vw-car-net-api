@@ -225,7 +225,7 @@ X-CarNet-Token:{YOUR TOKEN}
 }
 ````
 >Just like many of the functions below, the response you get from this will just be an acknowlegment you've sent a request. In order to get back the actual updated status object, you will have to request your vehicle's status again after you make this request, and it might take a few seconds for that to begin returning the updated summary. 
-
+>NOTE! If you make this request too frequently though, you will begin getting 429 Too Many Request errors from the server when you do it. I haven't yet figured out exactly how often is too often. 
 ## View Your Vehicle's Settings
 In addition to "status," you can also get a summary of the current values of each setting in your vehicle:
 #### Request
