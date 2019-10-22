@@ -1,10 +1,10 @@
+> *HEY! As of October 13th, 2019–and after VW changed their API and replaced their Car-Net app with a new one on October 22nd–all of this information is outdated and no longer works. I am going to let this document sit here for reference, and I will try to make a similar one that reflects the changes made to their API as soon as I can figure out how to.*
+
 # Connecting to the Volkswagen Car-Net API
 
 I used [mitmproxy](https://mitmproxy.org) to discover/reverse-engineer some of the endpoints and general behavior of how the Volkswagen Car-Net mobile app consumes its RESTful API. This document is intended to be instructions on how to use some of its functions for your own projects related to your car, untethered from the official Car-Net app, and without relying on html scrapers.
 
-I noticed that the other projects on GitHub tackling this subject have had some breaking changes occur that the authors couldn't control, and were no longer working or being updated. 
-
-This README will attempt to stay code-agnostic and simply detail each http request.
+This README will stay code-agnostic and just detail each http request.
 
 ## Disclaimer (Kind Of)
 The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here, depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal use-case. So if these details seem overly EV-centric, that's why. 
