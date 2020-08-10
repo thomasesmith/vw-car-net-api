@@ -661,7 +661,8 @@ authorization: Bearer [ACCESS TOKEN]
 > Issue the same request but with `enabled` set to boolean false in order to turn off unplugged climate control. 
 
 ***
-# And that about wraps up every feature that the Car-Net App offers, at least every one for it offers for EVs. 
+## And that's it
+That about wraps up every feature that the Car-Net App offers, at least every one it offers for EVs. 
 
 ### But "it doesn't work for me!" or "my responses look different!", etc.
 The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal account and my personal vehicle, because those are the only ones I have access to. So if these details seem overly ev-centric, that's why. If you'd like me to add features that you see in your Car-Net app but don't see here, send me a message and we'll talk about how we could work that out. 
