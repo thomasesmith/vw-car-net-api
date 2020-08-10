@@ -1,7 +1,7 @@
 # Connecting to the Volkswagen Car-Net API
 ### The Update!
 
-This document is intended to be a report my findings expirimenting with the VW Car-Net app's api since the service's update in October of 2019. How you use this information is your responsibility. **I have no idea if using the API in this manner violates the terms of service of the VW Car-Net service that you agreed to when you signed up. So, [if I were us](https://www.youtube.com/watch?v=pvCQvIrH35s), I would just assume that it does. Proceed at your own risk.**.
+This document is intended to be a report of my findings experimenting with the VW Car-Net app's api since the service's update in October of 2019. How you use this information is your responsibility. **I have no idea if using the API in this manner violates the terms of service of the VW Car-Net service that you agreed to when you signed up. So, [if I were us](https://www.youtube.com/watch?v=pvCQvIrH35s), I would just assume that it does. Proceed at your own risk.**.
 
 This README will stay code-agnostic and just detail the http requests to the API, what is required to include with each request, and a general idea of what you can expect back from the server in response. 
 
@@ -9,13 +9,13 @@ This README will stay code-agnostic and just detail the http requests to the API
 ***
 
 ## First, You Need Access Tokens
-After the update in October of 2019, Car-Net now uses an Oauth scheme to log you in to the app. So in order to get tokens programmatically, you have to scrape some values from the log in forms that the process generates. It's a bit of a hack, and you'll have to perform four seperate requests before you can even request access tokens, but it does work. Don't worry, we'll go in to detail for each of them. 
+After the update in October of 2019, Car-Net now uses an Oauth scheme to log you in to the app. So in order to get tokens programmatically, you have to scrape some values from the log in forms that the process generates. It's a bit of a hack, and you'll have to perform four separate requests before you can even request access tokens, but it does work. Don't worry, we'll go in to great detail for each of them. 
 
 But before we do, a quick word about how PKCE works...
  
 #### "Code Challenge" / "Code Verifier"
 
-Oauth PKCE schemes like the one Car-Net uses require you to submit a `code_challenge` string in the first request that generates the log in form, and then in the final step submit a `code_verifier` string that relates crytographically to that original `code_challenge` string you submitted. There are countless better ways to learn how Oauth works than this document, and you should find them and read them, but if you don't want to go to that trouble, you can also just use [this handy little PKCE generator](https://tonyxu-io.github.io/pkce-generator) by [Tony Xu](https://tonyxu.io) that will generate a Code Challenge string out of a submitted Code Verifier.
+Oauth PKCE schemes like the one Car-Net uses require you to submit a `code_challenge` string in the first request that generates the log in form, and then in the final step submit a `code_verifier` string that relates cryptographically to that original `code_challenge` string you submitted. There are countless better ways to learn how Oauth works than this document, and you should find them and read them, but if you don't want to go to that trouble, you can also just use [this handy little PKCE generator](https://tonyxu-io.github.io/pkce-generator) by [Tony Xu](https://tonyxu.io) that will generate a Code Challenge string out of a submitted Code Verifier.
 
 Simply enter *a 64-character random hex value* (characters a-f and 0-9) in to the "Verifier" field, click "Generate Code Challenge," and there you go. 
 
@@ -23,7 +23,7 @@ However it is you want to generate a valid PKCE pair of values, **save both valu
 
 ### Auth, Step 1
 
-For the very first of the auth requests, we're essentially be asking VW's servers to generate a log-in form for us, then snagging values out of the markup to handle the subsequent requests. Start with:
+For the very first of the auth requests, we'll essentially be asking VW's servers to generate a log-in form for us, then snagging values out of the markup to handle the subsequent requests. Start with:
 
 #### Request
 ```
@@ -34,10 +34,10 @@ There are 5 query values in that URL. The only two you need to worry about are t
 
 > You can use your favorite search engine to read more about what a 'UUID' value is and how mocking one will satisfy the api, or just use [a UUID generator](https://www.uuidgenerator.net/version4) to make one.
 
-> Also, in case you're wondering `2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com` is I believe the oauth client id of the iOS app. At least it is for the version on my phone. Either way, **copy this too**, you need for a few more of the steps. 
+> Also, in case you're wondering `2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com` is I believe the oauth client id of the iOS app. At least it is for the version on my phone. Either way, **copy this too**, you'll need it for a few more requests. 
 
 #### Response
-The response will be a series of `30x` redirects, one after another. Follow each of them (or instruct whatever programmatic means you're using to do so). It will eventually land on a VW branded log-in page asking you to submit your email address to begin the log in process. From this pages markup you will need to scrape some more values. Look for the form and find the chunks that look like this: 
+The response will be a series of `30x` redirects, one after another. Follow each of them (or instruct whatever programmatic means you're using to do so). It will eventually land on a VW branded log-in page asking you to submit your email address to begin the log in process. From this page's markup you will need to scrape some more values. Look for the form and find the chunks that look like this: 
 
 ```
 ...
@@ -215,7 +215,7 @@ You will get back a lot of information about yourself and your status with Car-N
   }
 }
 ```
-You will get a lot back from this one (I would encourage you to expiriment), but the values in this request that you'll definitely need for subsequent requests are your `userId`, your `vwId`, and the `vehicleId`, `tsp`, and `tspAccountNum` values that are associated with the vehicle you want to control. 
+You will get a lot back from this one (I would encourage you to experiment), but the values in this request that you'll definitely need for subsequent requests are your `userId`, your `vwId`, and the `vehicleId`, `tsp`, and `tspAccountNum` values that are associated with the vehicle you want to control. 
 
 ## Now You Can Get A Vehicle's Status Summary
 Now you can begin poking around.  Start by getting your vehicle's current "status." This is a summary of your vehicle that includes a lot of stuff: your car's GPS coordinates (if applicable), its odometer reading, door lock status, its battery/charge status, approximate remaining range, etc.
@@ -384,7 +384,7 @@ authorization: Bearer [ACCESS TOKEN]
   }
 }
 ```
-> Just a note about most of the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you were to run this request, then request the status of the car immediately after, you will not find that the status response now indicates the vehicle's doors are now locked. It takes me about 20 seconds for that to actually reflect. You might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond), it is my belief that this is due to the api reaching out to the vehicles cellular radio and the upstream latency associated with that.
+> Just a note about most of the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you were to run this request, then request the status of the car immediately after, you will not find that the status response now indicates the vehicle's doors are now locked. It takes me about 20 seconds for that to actually reflect. You might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond), it is my belief that this is due to the api reaching out to the vehicle's cellular radio, and the upstream latency inherit with that.
 
 
 ## Locking/Unlocking The Doors
@@ -625,7 +625,7 @@ authorization: Bearer [ACCESS TOKEN]
   }
 }
 ```
-> To START the climate system simply change the JSON value of `active` from boolen false to boolean true. To keep it active, but just change the target temperature, submit with `active` set to true and change the `target_temperature` to an int value representing fahrenheit degrees. (the api happens to expect fahrenheit degress from me, but that expectation may be localized to me. you might need to submit celsius degrees. expirement with this.)
+> To START the climate system simply change the JSON value of `active` from boolen false to boolean true. To keep it active, but just change the target temperature, submit with `active` set to true and change the `target_temperature` to an int value representing fahrenheit degrees. (the api happens to expect fahrenheit degrees from me, but that expectation may be localized to me. you might need to submit celsius degrees. experiment with this.)
 
 ## Enabling/Disabling Unplugged Climate Control
 If you have an EV and you like to live dangerously, you can let your car prepare the climate for you or run the defroster _even when it's not plugged in_. To change this setting and allow it to use battery power to do so, here's how:
@@ -668,4 +668,4 @@ That about wraps up every feature that the Car-Net App offers, at least every on
 The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal account and my personal vehicle, because those are the only ones I have access to. So if these details seem overly ev-centric, that's why. If you'd like me to add features that you see in your Car-Net app but don't see here, send me a message and we'll talk about how we could work that out. 
 
 ### Contact Me
-I can't offer any real support for the API itself, because if there's am issue in my documentation, please use the Issues tab above. Obviously this API belongs to VW and I have no actual control over it, but contact me [@varwwwhtml](https://twitter.com/varwwwhtml) or tom AT itsmetomsmith DOT com) if you have questions, ideas, or just want to talk about this subject. I'd love to know if this document helped you make something interesting. 
+I can't offer any real support for the API itself obviously because it belongs to VW and I have no actual control over it, but if there's an issue in my documentation or if something isn't behaving the way I describe it to, please use the Issues tab above. Contact me [@varwwwhtml](https://twitter.com/varwwwhtml) or tom AT itsmetomsmith DOT com) if you have questions, ideas, or just want to talk about this subject. I'd love to know if this document helped you make something interesting. 
