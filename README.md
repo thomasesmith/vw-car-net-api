@@ -1,549 +1,670 @@
-> *HEY! As of October 13th, 2019–and after VW changed their API and replaced their Car-Net app with a new one on October 22nd–all of this information is outdated and no longer works. I am going to let this document sit here for reference, and I will try to make a similar one that reflects the changes made to their API as soon as I can figure out how to.*
-
 # Connecting to the Volkswagen Car-Net API
+### The Update!
 
-I used [mitmproxy](https://mitmproxy.org) to discover/reverse-engineer some of the endpoints and general behavior of how the Volkswagen Car-Net mobile app consumes its RESTful API. This document is intended to be instructions on how to use some of its functions for your own projects related to your car, untethered from the official Car-Net app, and without relying on html scrapers.
+This document is intended to be a report my findings expirimenting with the VW Car-Net app's api since the service's update in October of 2019. How you use this information is your responsibility. **I have no idea if using the API in this manner violates the terms of service of the VW Car-Net service that you agreed to when you signed up. So, [if I were us](https://www.youtube.com/watch?v=pvCQvIrH35s), I would just assume that it does. Proceed at your own risk.**.
 
-This README will stay code-agnostic and just detail each http request.
+This README will stay code-agnostic and just detail the http requests to the API, what is required to include with each request, and a general idea of what you can expect back from the server in response. 
 
-## Disclaimer (Kind Of)
-The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here, depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal use-case. So if these details seem overly EV-centric, that's why. 
-
-It's worth mentioning also that **I have no idea if using the API in this manner violates your terms of service with VW Car-Net. So assume the worst, and proceed at your own risk.**
-
-## Contact
-I can't offer any real support for this API, because it's not mine and I have no control over it, but contact me ([@varwwwhtml](https://twitter.com/varwwwhtml) or tom AT itsmetomsmith DOT com) if you have any questions, ideas, or thoughts regarding this subject. I'd love to know if this document helped someone start something.
-
-***
-## Like Everything, You Start by Logging In
-You have to first log in in order to receive a token to use for the rest of your requests. But logging in is actually two steps, just like it is in the app: first to log in to your account with your email address and password, then a second level to authorize with your account number and PIN. 
-
-#### Request
-First, send a request like this one:
-
-````
-POST https://cns.vw.com/mps/v1/login
-Content-Type:application/json
-
-{
-    "email": "{YOUR CAR-NET ACCOUNT EMAIL ADDRESS}",
-    "password": "{YOUR PASSWORD}"
-}
-````
-> The "Content-Type:application/json" header is required in every `POST`, `PATCH`, and `PUT` request that is made to this server. I've found that if you don't include it, you'll just get back 415 errors. The `GET`s don't require it, however.
-
-#### Response
-Upon a successful login, you will receive back a JSON object containing your account details that will look something like this: 
-````
-{
-  "value": {
-    "needs_password_reset": false,
-    "token": {
-      "value": "{YOUR TOKEN, USUALLY 48 BYTES}",
-      "expiration_date": "2019-10-31T17:09:09.932Z"
-    },
-    "account": {
-      "vehicles": [
-        {
-          "id": "{YOUR CAR-NET ACCOUNT NUMBER}",
-          "vin": "WVWKP7AU123456789",
-          "make": "VW",
-          "model": {
-            "type": "egolf_2016",
-            "name": "e-Golf"
-          },
-          "year": 2016,
-          "color": "Night Blue Metallic",
-          "subscription": {
-            "state": "ok",
-            "message": "Your subscription will end on `10/10/2020.",
-            "active_features": [
-              "battery",
-              "climate",
-              "departure_timers",
-              "remote",
-              "navigation",
-              "alerts",
-              "health_report"
-            ]
-          },
-          "vehicle_features": [
-            "door_lock",
-            "battery",
-            "climate"
-          ],
-          "dealership": {
-            "name": "Sim City Volkswagen",
-            "phone": "8185551212",
-            "location": {
-              "latitude": 12.1234,
-              "longitude": -123.123
-            },
-            "address": {
-              "countryOnly": false,
-              "street": "123 Fake St.",
-              "city": "Sim City",
-              "state": "CA",
-              "zip_code": "91001",
-              "country": "USA"
-            }
-          }
-        }
-      ]
-    }
-  }
-}
-````
->TAKE NOTE of the "token" and "id" values (your "id" is also your Car-Net account number), you will need both of these in order to complete all the other API requests detailed in this document.  
-
-...then you must authorize your Car-Net account number and PIN. This secondary account/PIN authorization process must be performed in order for your token to successfully be used in any the other API requests. Trying to make API requests without doing so will result in errors. Here's how:
-#### Request 
-````
-POST https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/auth
-Content-Type:application/json
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{THE TOKEN GIVEN TO YOU BY THE PREVIOUS RESPONSE}
-
-{
-    "id": "{YOUR ACCOUNT NUMBER}",
-    "pin": "{YOUR PIN}"
-}
-````
-
-#### Response
-The response will be simply the expiration date/time of your token. 
-````
-{
-  "value": {
-    "token_expiration_date": "2019-09-16T16:46:55.039Z"
-  }
-}
-````
-
-> This token expiry is set for about 15 minutes in to the future, but I have found that it's not a "firm" expiration time for your token. It seems more to be the expiration time if you were to then stop making requests. Each request you make with your token seems to lengthen your tokens expiry time to 15 more minutes in to the future. But if you wait 15 minutes between your last and next request using your token, your requests will then produce token expiry errors. 
-
->If any of your requests suddenly begin responding with a 500 error ("Something went wrong"), or a 403 response with "Vehicle session expired" message, simply re-perform the account/PIN authorization request, **using the same token you were first issued**. This will "refresh" the token, and issue it a new expiry time of 15 minutes in the future. You can then continue to use it for requests. In this instance, **you don't have to repeat the first email/password log in request and get a new token.** 
-
->I notice also that including the `Cookie` header with the value `SERVERID=mps-server-001` seems to be necessary for reliable use. 
 
 ***
 
-## View Your Vehicle's "Status"
-Now that you're all logged in and authorized, you can begin poking around.  Start by getting your cars current "status." The status is a summary of your vehicle that includes a lot of stuff: your car's GPS coordinates, its odometer reading, its charging status and approximate driving range, etc..
+## First, You Need Access Tokens
+After the update in October of 2019, Car-Net now uses an Oauth scheme to log you in to the app. So in order to get tokens programmatically, you have to scrape some values from the log in forms that the process generates. It's a bit of a hack, and you'll have to perform four seperate requests before you can even request access tokens, but it does work. Don't worry, we'll go in to detail for each of them. 
+
+But before we do, a quick word about how PKCE works...
+ 
+#### "Code Challenge" / "Code Verifier"
+
+Oauth PKCE schemes like the one Car-Net uses require you to submit a `code_challenge` string in the first request that generates the log in form, and then in the final step submit a `code_verifier` string that relates crytographically to that original `code_challenge` string you submitted. There are countless better ways to learn how Oauth works than this document, and you should find them and read them, but if you don't want to go to that trouble, you can also just use [this handy little PKCE generator](https://tonyxu-io.github.io/pkce-generator) by [Tony Xu](https://tonyxu.io) that will generate a Code Challenge string out of a submitted Code Verifier.
+
+Simply enter *a 64-character random hex value* (characters a-f and 0-9) in to the "Verifier" field, click "Generate Code Challenge," and there you go. 
+
+However it is you want to generate a valid PKCE pair of values, **save both values somewhere for later**. You're going to need them. Let's get going. 
+
+### Auth, Step 1
+
+For the very first of the auth requests, we're essentially be asking VW's servers to generate a log-in form for us, then snagging values out of the markup to handle the subsequent requests. Start with:
 
 #### Request
-````
-GET https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-````
+```
+GET https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/authorize?redirect_uri=car-net%3A%2F%2F%2Foauth-callback&scope=openid&prompt=login&code_challenge=[CODE CHALLENGE]%3D&state=[RANDOMLY GENERATED UUID VALUE]&response_type=code&client_id=2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com
+```
+
+There are 5 query values in that URL. The only two you need to worry about are the `state` value where you must submit any old random UUID value, and the `code_challenge` field, where you must submit the code challenge from the PKCE pair you generated before (leave the `%3D` at the end of this value, like it is in the example). 
+
+> You can use your favorite search engine to read more about what a 'UUID' value is and how mocking one will satisfy the api, or just use [a UUID generator](https://www.uuidgenerator.net/version4) to make one.
+
+> Also, in case you're wondering `2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com` is I believe the oauth client id of the iOS app. At least it is for the version on my phone. Either way, **copy this too**, you need for a few more of the steps. 
 
 #### Response
-The API will respond with a JSON object summarizing your vehicle's status: 
-````
+The response will be a series of `30x` redirects, one after another. Follow each of them (or instruct whatever programmatic means you're using to do so). It will eventually land on a VW branded log-in page asking you to submit your email address to begin the log in process. From this pages markup you will need to scrape some more values. Look for the form and find the chunks that look like this: 
+
+```
+...
+<form class="content" id="emailPasswordForm"
+      name="emailPasswordForm"
+      method="POST"
+      novalidate="true"
+      action="/signin-service/v1/b680e751-7e1f-4008-8cc1-3a528183d215@apps_vw-dilab_com/login/identifier">
+
+...
+
+<input type="hidden" id="csrf" name="_csrf" value="4e9f7522-c2e7-4e6d-87a1-f87b95c6e79b"/>
+<input type="hidden" id="input_relayState" name="relayState" value="8510a5c146130ec2cc31721e0fa889bd6c613607"/>
+<input type="hidden" id="hmac" name="hmac" value="7ecf096d1176c00a9ffd8840190a9ab304644078015354efbc087f29d6c9ce7c"/>
+...
+```
+
+**Copy the values** for `_csrf`, `relayState`, and `hmac` for use in upcoming requests. Also copy the form's `action` value.
+
+### Auth, Step 2
+
+The second request submits your email address. Make a POST request to the uri you copied from the `action` value in the markup of the last response. Then include a body of some form values.  
+
+#### Request
+``` 
+POST /signin-service/v1/b680e751-7e1f-4008-8cc1-3a528183d215@apps_vw-dilab_com/login/identifier 
+content-type: application/x-www-form-urlencoded
+
+_csrf=[CSRF]&relayState=[RELAY STATE]&email=[YOUR CAR NET EMAIL ADDRESS]&hmac=[HMAC]
+```
+For this one, we have to include 4 form values in the request. `_csrf`, `relayState`, and `hmac` should equal the values we just copied from the last request's response, but the `email` value should be the set to whatever email address you use to log in to your Car-Net account. 
+
+#### Response 
+Again, this will result in a series of `30x` redirects, but if you follow them all, it will finally settle on the form where you would be submitting your password. You again need to scrape some values from the markup of this response and grab one more value. Find this: 
+
+```
+...
+<form class="content" id="credentialsForm"
+      name="credentialsForm"
+      method="POST"
+      action="/signin-service/v1/b680e751-7e1f-4008-8cc1-3a528183d215@apps_vw-dilab_com/login/authenticate">
+...
+<input type="hidden" id="hmac" name="hmac" value="0b6b6bd01b29c502cd31a204c6d4a2e07fe161e7ba9a3b97cec6b59c261a52d9"/>
+...
+```
+The form generated a new `hmac` value that we must use when we submit our password in the next request. Also **copy again** this form elements `action` value, since the next request will be made to that uri. 
+
+### Auth, Step 3
+This third request is the submission of both your password and email address (don't worry, your password is being sent along just as secure lines as it would be if you used the official app itself to submit it).
+#### Request
+```
+POST https://identity.na.vwgroup.io/signin-service/v1/b680e751-7e1f-4008-8cc1-3a528183d215@apps_vw-dilab_com/login/authenticate
+content-type: application/x-www-form-urlencoded
+
+_csrf=[CSRF]&relayState=[RELAY STATE]&email=[CAR NET EMAIL ADDRESS]&hmac=[LAST HMAC COPIED]&password=[CAR NET PASSWORD]
+```
+We include 5 form values in this request. `_csrf`, `relayState` should equal the values you copied from the response of Auth Step 1, and `hmac` should equal the value you copied from the response of Auth Step 2, the `email` value should be whatever email address you use to log in to your Car-Net account, and the `password` should of course be the password you use to log in to you Car-Net account 
+
+#### Response
+You guessed it, it responds with another series of `30x` redirects. Only this time, they will eventually land you on a url you can't load, a `car-net://` uri. This is the point at which the app itself would normally take over the process. So in the event of a successful log in, in the details of the final `302` redirect, you will find something that looks like this uri: 
+ ```
+HTTP/2 302 
+location: car-net:///oauth-callback?state=d046b114-7aa8-46d5-84e3-938fcd64b482&code=0ae3dcb147ff2c12531bdc88595b0b66eb28a2c3a338c35e6d28e6cd32516defdaf4e581bdab4f51a80cd85e88a8034
+```
+Now, you must copy the value of `code` so we can use it in the final auth step.
+
+### Auth, Step 4
+Finally, this request will actually result in us getting access tokens! 
+
+> Take note of the change in domain!
+
+#### Request
+```
+POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token HTTP/2
+content-type: application/x-www-form-urlencoded
+accept: */*
+accept-encoding: gzip, deflate, br
+user-agent: Car-Net/60 CFNetwork/1121.2.2 Darwin/19.3.0
+accept-language: en-us
+
+grant_type=authorization_code&code=[CODE VALUE]&client_id=2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com&redirect_uri=car-net%3A%2F%2F%2Foauth-callback&code_verifier=[CODE VERIFIER VALUE THAT YOU GENERATED EARLIER]
+```
+#### Response
+```
 {
-  "value": {
-    "timestamp": "2019-09-16T16:23:29.000Z",
-    "current_mileage": 27283,
-    "next_maintenance_milestone": {
-      "mileage_interval": 0,
-      "absolute_mileage": 12600,
-      "date": "2019-11-09T17:26:18.623Z"
-    },
-    "exterior": {
-      "entry": {
-        "secure": true,
-        "doors": {
-          "front_left_open": false,
-          "front_right_open": false,
-          "rear_left_open": false,
-          "rear_right_open": false,
-          "rear_open": false
-        },
-        "windows": {
-          "front_left_open": false,
-          "front_right_open": false,
-          "rear_left_open": false,
-          "rear_right_open": false,
-          "engine_hood_open": false
-        }
+  "access_token": "eyJraWQiOiJNenZDSkJHNVFh...",
+  "expires_in": 1800,
+  "id_token": "eyJraWQiOiJ1R0YzNm9LWGt1Vms4...",
+  "id_expires_in": 1800,
+  "token_type": "Bearer",
+  "refresh_token": "eyJraWQiOiJNenZDSkJHNVF...",
+  "refresh_expires_in": 31536000
+}
+```
+> If this returns anything other than a 200 status code, it is probably due to an invalid `code_verifier`. Try re-generating a PKCE pair and going again.  
+
+Finally! We have some tokens. Let's see what we can do with them...
+
+***
+
+## First, Get Your User Profile and List of Vehicles
+This is a simple GET request using the `id_token` you just received right in the uri, and using the `access_token` in the `authorization` header.
+> Don't forget to include "Bearer " before your access token!
+
+#### Request
+
+```
+GET https://b-h-s.spr.us00.p.con-veh.net/account/v1/enrollment/status?idToken=[ID TOKEN]
+authorization: Bearer [ACCESS TOKEN]
+```
+#### Response 
+You will get back a lot of information about yourself and your status with Car-Net. So much that it might spook you: your birth date, the  IMEI number of the cell device in your car, `stolenFlag`?! 
+```
+{
+  "data": {
+    ...
+    "customer": {
+      "userId": "4568c4f9-6e5b-4308-99f7-eb276ba0fa26",
+      ...
+      "vwId": "c65512a4-9c58-4fd6-a42a-549cc0314de6vwcarnetportal-prod-002-appserver-000",
+       ...
+      "firstName": "Paul",
+      "lastName": "Newman",
+      "preferredLanguage": "English",
+      "birthDate": ...,
+      "address": {
+        ...
       },
-      "lights": {
-        "left_on": false,
-        "right_on": false
+      "phones": [
+        {
+          ...
+        }
+      ],
+      "emails": [
+        {
+          ...
+        }
+      ],
+      "updatedAt": 1574754533000
+    },
+    "vehicleEnrollmentStatus": [
+      {
+        "vehicleId": "abcdef12-3456-7890-abcd-ef1234567890",
+        "carName": {},
+        "associationStatus": "ASSOCIATION_VERIFIED",
+        "vehicle": {
+          "vin": "...",
+          "vehicleId": "abcdef12-3456-7890-abcd-ef1234567890",
+          "brand": "VW",
+          "modelName": "e-Golf",
+          "modelYear": "2016",
+          "modelCode": "BE12B1",
+          "modelDesc": "egolf_2016",
+          "stolenFlag": "N",
+          "tspProvider": "VZT",
+          "ocuSim": {
+            "imei": ...,
+            "defaultMno": "Verizon"
+          },
+          ...
+        },
+        "rolesAndRights": {
+          "vehicleId": "...",
+          "userId": "...",
+          ...
+          "tspAccountNum": "12345678",
+          "privileges": [
+            ...
+          ],
+          ...
+        },
+        ...
+      }
+    ]
+  }
+}
+```
+You will get a lot back from this one (I would encourage you to expiriment), but the values in this request that you'll definitely need for subsequent requests are your `userId`, your `vwId`, and the `vehicleId`, `tsp`, and `tspAccountNum` values that are associated with the vehicle you want to control. 
+
+## Now You Can Get A Vehicle's Status Summary
+Now you can begin poking around.  Start by getting your vehicle's current "status." This is a summary of your vehicle that includes a lot of stuff: your car's GPS coordinates (if applicable), its odometer reading, door lock status, its battery/charge status, approximate remaining range, etc.
+
+#### Request
+```
+GET https://b-h-s.spr.us00.p.con-veh.net/rvs/v1/vehicle/[VEHICLE ID] HTTP/2
+authorization: Bearer [ACCESS TOKEN]
+```
+#### Response
+```
+{
+  "data": {
+    "currentMileage": ...,
+    "nextMaintenanceMilestone": {
+      "mileageInterval": 0,
+      "absoluteMileage": ...
+    },
+    "timestamp": ...,
+    "exteriorStatus": {
+      "secure": "SECURE",
+      "doorStatus": {
+        "frontLeft": "CLOSED",
+        "frontRight": "CLOSED",
+        "rearLeft": "CLOSED",
+        "rearRight": "CLOSED",
+        "trunk": "CLOSED",
+        "hood": "CLOSED",
+        ...
+      },
+      "doorLockStatus": {
+        "frontLeft": "LOCKED",
+        "frontRight": "LOCKED",
+        "rearLeft": "LOCKED",
+        "rearRight": "LOCKED"
+      },
+      "windowStatus": {
+        "frontLeft": "CLOSED",
+        "frontRight": "CLOSED",
+        "rearLeft": "CLOSED",
+        "rearRight": "CLOSED"
+        ...
+      },
+      "lightStatus": {
+       ...
       }
     },
-    "power": {
-      "cruise_range": 87,
-      "cruise_range_units": "MILES",
+    "powerStatus": {
+      "cruiseRange": 148,
+      "fuelPercentRemaining": 0,
+      "cruiseRangeUnits": "KM",
+      "cruiseRangeFirst": 148,
       "battery": {
-        "charge_percent_remaining": 76,
-        "minutes_until_full_charge": 15,
-        "charge_plug": "unplugged",
-        "triggered_by_timer": false
+        "chargePercentRemaining": 100,
+        "minutesUntilFullCharge": 15,
+        "chargePlug": "PLUGGEDIN",
+        "triggeredByTimer": "false"
       }
-    },
-    "climate": {
-      "outdoor_temperature": 73,
-      "target_temperature": 64,
-      "climate_on": false,
-      "defrost_on": false,
-      "unplugged_climate_control_enabled": true,
-      "triggered_by_timer": false
     },
     "location": {
-      "latitude": 123.123456,
-      "longitude": -123.123456
+      "latitude": ...,
+      "longitude": ...
     },
-    "address": {
-      "countryOnly": false,
-      "street": "123 CurrentStreetAddress Drive",
-      "city": "Sim City",
-      "state": "CA",
-      "zip_code": "91001",
-      "country": "USA"
+    "lastParkedLocation": {
+      "latitude": ...,
+      "longitude": ...
+    },
+    ...
+    "lockStatus": "LOCKED"
+  }
+}
+```
+
+## Refresh Your Tokens When They Need It
+After 30 minutes, your `access_token` and `id_token` will expire. You will need to use your `refresh_token` to request a new set of tokens that will last another 30 minutes. Here's how to:
+
+#### Request
+```
+POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token HTTP/2
+content-type: application/x-www-form-urlencoded
+accept: */*
+
+code_verifier=[CODE VERIFIER YOU GENERATED EARLIER]&grant_type=refresh_token&client_id=2dae49f6-830b-4180-9af9-59dd0d060916%40apps_vw-dilab_com&refresh_token=[REFRESH TOKEN]
+```
+#### Response
+```
+{
+  "access_token": "eyJraW56ryjyukZDSkJHNVFh...",
+  "expires_in": 1800,
+  "id_token": "eyJraWQiOiJ1R0676y9LWGt1Vms4...",
+  "id_expires_in": 1800,
+  "token_type": "Bearer",
+  "refresh_token": "eyJraWQiOiJ78lhkuyJHNVF...",
+  "refresh_expires_in": 31536000
+}
+```
+You should get back a fresh new set of tokens. If you just keep executing this refresh request before your `refresh_token` expires, you can avoid doing that obnoxious log in process for quite some time.
+
+So, this is all good for _reading_ information, but what if you want to tell your car to do things? For that we need to request one more token.
+
+## Get a "TSP Token" to Command The Vehicle
+To make commands of a vehicle, you need to request what the api refers to as a TSP Token. This is also where your Car-Net PIN comes in to play.
+
+#### Request
+```
+POST https://b-h-s.spr.us00.p.con-veh.net/ss/v1/user/[USER ID]/vehicle/[VEHICLE ID]/session HTTP/2
+> content-type: application/json;charset=UTF-8
+> authorization: Bearer [ACCESS TOKEN]
+
+{
+  "accountNumber": "[TSP ACCOUNT NUMBER]",
+  "idToken": "[ID TOKEN]",
+  "tspPin": "[YOUR CAR-NET PIN]",
+  "tsp": "[TSP]"
+}
+```
+
+#### Response
+This returns a lot, some of which you may find interesting, but what we're looking for is this value:
+
+```
+{
+    "data": {
+        ...
+        "tspToken": "3c777373653a536563757269747920786d6c3a777..."
     }
-  }
 }
-````
-## Force Refresh of Vehicle Status
-Sometimes the vehicle status that gets returned is a little stale (as evident by an old `timestamp` value), but this tends to be when nothing about the car is changing much. For instance, while charging my eGolf, the /status response updates regularly and doesn't require a forced refresh, but when the car is parked in a way that nothing about the car is really changing, it lets the status response get a little old. 
+```
 
-If you want to force the API to poll the vehicle again and get an updated summary, do the following: 
+You will need this TSP Token for every request after this.
+
+> For some reason this token doesn't come with expiration information, but I have found that after about 45 minutes, this token needs to be refreshed. In order to refresh the `tspToken`, just run this same request again (of course with a valid and fresh `access_token`/`id_token` set) and you will get back a new one.
+
+## Force Refresh of Vehicle Status/Summary
+
+Sometimes the vehicle status that we talked about above gets a little stale (as evident by an old `timestamp` value), but this tends to be when nothing about the car is changing much. For instance, while charging my eGolf, the status response updates regularly and doesn't require a forced refresh, but when the car is parked in a way that nothing about the car is really changing, it lets the status response get a little old. 
+
+If you want to force the system to re-poll the vehicle and get an updated summary, perform the following... 
 
 #### Request
-````
-GET https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/fresh
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-````
+PUT a json body like the following (and don't forget these important headers) to refresh the status of the vehicle.
+
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/fresh HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [ANY RANDOM UUID VALUE]
+authorization: Bearer [ACCESS TOKEN]
+
+{
+  "tsp_token": "[TSP TOKEN]",
+  "email": "[YOUR CAR NET EMAIL ADDRESS]",
+  "vw_id": "[YOUR VW ID]"
+}
+```
+
+#### Response
+
+```
+{
+  "data": {
+    "correlationId": "...",
+    "command": "fetch_vehicle_status",
+    "result": 0
+  }
+}
+```
+> Just a note about most of the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you were to run this request, then request the status of the car immediately after, you will not find that the status response now indicates the vehicle's doors are now locked. It takes me about 20 seconds for that to actually reflect. You might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond), it is my belief that this is due to the api reaching out to the vehicles cellular radio and the upstream latency associated with that.
+
+
+## Locking/Unlocking The Doors
+#### Request
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [ANY RANDOM UUID VALUE]
+authorization: Bearer [ACCESS TOKEN]
+
+{
+  "tsp_token": "[TSP TOKEN]",
+  "lock": true,
+  "email": "[YOUR CAR NET EMAIL ADDRESS]",
+  "vw_id": "[YOUR VW ID]"
+}
+```
 #### Response
 ````
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "fetch_vehicle_status"
+  "data": {
+    "correlationId": "...",
+    "command": "lock_doors",
+    "result": 0
   }
 }
 ````
->Just like many of the functions below, the response you get from this will just be an acknowlegment you've sent a request. In order to get back the actual updated status object, you will have to request your vehicle's status again after you make this request, and it might take a few seconds for that to begin returning the updated summary. 
-
->NOTE! If you make this request too frequently though, you will begin getting 429 Too Many Request errors from the server when you do it. I haven't yet figured out exactly how often is too often. 
-
-
-## View Your Vehicle's Settings
-In addition to "status," you can also get a summary of the current values of each setting in your vehicle:
-#### Request
-````
-GET https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/settings
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-````
-It will respond with a JSON object containing your car's setting values:
-#### Response
-````
-{
-  "value": {
-    "primary_notification_methods": {
-      "email": [
-        "your-email-address@mail.com"
-      ],
-      "phone": [
-        "8055551213"
-      ]
-    },
-    "boundaries": [],
-    "departure_timers": [
-      {
-        "id": 1,
-        "enabled": false,
-        "profile": {
-          "name": "Name of Timer 1",
-          "charging": true,
-          "climate_on": false
-        },
-        "expired": false,
-        "recurring_schedule": {
-          "days_of_week": [
-            "monday",
-            "tuesday",
-            "wednesday",
-            "friday"
-          ],
-          "time": {
-            "hours_minutes": "11:00",
-            "time_zone": "America/New_York"
-          }
-        }
-      },
-      {
-        "id": 2,
-        "enabled": false,
-        "profile": {
-          "name": "Name of Timer 2",
-          "charging": true,
-          "climate_on": false
-        },
-        "expired": false,
-        "recurring_schedule": {
-          "days_of_week": [
-            "thursday"
-          ],
-          "time": {
-            "hours_minutes": "11:00",
-            "time_zone": "America/New_York"
-          }
-        }
-      },
-      {
-        "id": 3,
-        "enabled": false,
-        "profile": {
-          "name": "Name of Timer 3",
-          "charging": true,
-          "climate_on": false
-        },
-        "expired": false,
-        "recurring_schedule": {
-          "days_of_week": [
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-            "sunday"
-          ],
-          "time": {
-            "hours_minutes": "11:00",
-            "time_zone": "America/New_York"
-          }
-        }
-      }
-    ],
-    "max_charge_current": "max",
-    "unplugged_climate_control_enabled": true
-  }
-}
-````
-
-***
-## Various Functions I've Been Able to Map So Far
-Both `PUT` and `PATCH` requests are used to adjust the status and settings of your vehicle. I don't know why they made some PUT and some PATCH, so keep a keen eye on which is used for which request. 
-
-Here are the functions I've mapped out so far...
-
-### Locking/Unlocking The Doors
-#### Lock Doors Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/exterior/doors
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
-
-{
-  "lock": true
-}
-````
-#### Lock Doors Response
-````
-{
-  "value": {
-    "transaction_id": "...",
-    "command": "lock_doors"
-  }
-}
-````
->Just a note about all of these functions: getting a response doesn't mean your request has already been fulfilled in the real world. In fact, if you were to run this request, then immediately following it request the "status" of the car, you will not see in the status response that the car's doors are now locked. It takes me about 30 seconds for that to actually happen. The API server itself responds quickly, but it seems to take some time for the vehicle to actually lock, and then even more time for the "status" summary request to reflect that has been locked. This is the case with all of the `PUT` and `PATCH` requests made to the API. I assume this is a limitation of the speed of the data connection to the vehicle itself, and the speed at which the vehicle can process directives sent to it from VWs servers (it's not like these API requests communicate directly with the vehicle itself). Perhaps this explains somewhat the excruciating slowness of the Car-Net app? 
-
 And then to unlock...
-#### Unlock Doors Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{ACCOUNT NUMBER}/status/exterior/doors
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
+#### Request
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [ANY RANDOM UUID VALUE]
+authorization: Bearer [ACCESS TOKEN]
 
 {
-  "lock": false
+  "tsp_token": "[TSP TOKEN]",
+  "lock": false,
+  "email": "[YOUR CAR NET EMAIL ADDRESS]",
+  "vw_id": "[YOUR VW ID]"
 }
-````
-#### Unlock Doors Response
-````
+```
+#### Response
+```
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "unlock_doors"
+  "data": {
+    "correlationId": "...",
+    "command": "unlock_doors",
+    "result": 0
   }
 }
-````
-
-### Flashing Headlights/Honking Horn
+```
+## Flash Headlights/Honk Horn
 #### Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/exterior/horn_and_lights
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/horn_and_lights HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [ANY RANDOM UUID VALUE]
+authorization: Bearer [ACCESS TOKEN]
+
 {
+  "email": "[EMAIL ADDRESS]",
   "horn": true,
-  "lights": true
+  "lights": true,
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
 }
-````
+```
 #### Response
-````
+```
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "flash_lights_and_honk_horn"
+  "data": {
+    "correlationId": "...",
+    "command": "flash_lights_and_honk_horn",
+    "result": 0
   }
 }
-````
->You can also JUST honk the horn, by changing the JSON to `"lights": false`, or you can JUST flash the lights by changing the JSON to `"horn": false`.
+```
+>You can also **just** honk the horn, by changing the JSON to `"lights": false`, or you can **just** flash the lights by changing the JSON to `"horn": false`.
 
-### Stop Charging
+## Start/Stop Charging
 #### Request
-````
-PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/charging
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
-{
-  "active": false
-}
-````
-> Watch out! Unlike the others, charging related requests are of type `PATCH`.
+```
+PATCH https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/charging HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
 
-#### Response
-````
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "stop_charge"
-  }
+  "active": true,
+  "email": "[EMAIL ADDRESS]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
 }
-````
-### Start Charging
+```
+> Watch out! Unlike the others, charging related requests are of method `PATCH`.
 
-#### Request
-````
-PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/charging
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
-{
-  "active": true
-}
-````
-> Watch out! Unlike the others, charging related requests are of type `PATCH`.
+### Response
 
-#### Response
-````
+```
 {
   "value": {
     "transaction_id": "...",
     "command": "start_charge"
   }
 }
-````
-### Setting the Maximum Charging Current
+```
+> To STOP charging, simply change the JSON value of `active` from true to false.
+
+## Setting the Maximum Charging Current
+Sometimes you don't want your car to pull all the amps it can from a charger. Here's how to set it to max out that amperage, or how to instruct your vehicle not to use draw at its maximum ability. 
 #### Request 
-````
-PATCH https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/settings/max_charge_current
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/settings/max_charge_current HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
+
 {
-  "max_charge_current": "max"
+  "max_charge_current": "max",
+  "email": "[EMAIL ADDRESS]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
 }
-````
-> The values that the API will accept for "max_charge_current" probably differ depending on your vehicle, but I happen to know that for the 2016 eGolf SE (w/ the optional DC Fast Charging package) the acceptable values of "max_charge_current" are 5, 10, 13, and "max". 
+```
+> The values that the API will accept for `max_charge_current` probably differ depending on your vehicle, but I happen to know that for the 2016 eGolf SE (w/ the optional DC Fast Charging package) the acceptable values of `max_charge_current` are int values 5, 10, 13, and a string value of "max". 
+
 #### Response
-````
+```
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "set_max_charge_current"
+  "data": {
+    "correlationId": "...",
+    "command": "set_max_charge_current",
+    "result": 0
   }
 }
-````
-
-### Turning On/Off Climate Control and Adjusting Target Temperature
-If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can adjust the climate control with the API. Here's how: 
+```
+## Retrieve Your Vehicle's Climate System Settings
 #### Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/climate
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/climate/details HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [ANY RANDOM UUID VALUE]
+authorization: Bearer [ACCESS TOKEN]
+
+{
+  "tsp_token": "[TSP TOKEN]",
+  "email": "[YOUR CAR NET EMAIL ADDRESS]",
+  "vw_id": "[YOUR VW ID]"
+}
+```
+#### Response
+```
+{
+  "data": {
+    "outdoor_temperature": 74,
+    "target_temperature": 77,
+    "climate_on": false,
+    "defrost_on": false,
+    "unplugged_climate_control_enabled": true,
+    "triggered_by_timer": false
+  }
+}
+```
+
+## Turning On/Off Defroster
+If your vehicle is plugged in, or if you have `unplugged_climate_control_enabled` set to `true`, you can remotely turn off or on the defroster. 
+#### Request
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/46319909/status/defrost HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
+
 {
   "active": true,
-  "target_temperature": 72
+  "email": "[EMAIL]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
 }
-````
-> Issue the same request but with `"active": false` to turn **off** climate control. 
+```
 
->"target_temperature" is the number in fahrenheit (at least for me) that one would set as the temperature they want the interior of the car to be. I have not tested the limits of what is an acceptable range of values for "target_temperature".
 #### Response
-````
+```
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "start_climate"
+  "data": {
+    "correlationId": "...",
+    "command": "start_defrost",
+    "result": 0
   }
 }
-````
-> If you issued that request as `"active": false` the "command" value would've been returned as "stop_climate". 
+```
+> Issue the same request but with `active` set to boolean false to **turn off** the defroster. 
 
-### Turning On/Off Defroster
-If your vehicle is plugged in, or if you have "unplugged_climate_control_enabled" set to `true`, you can remotely turn off or on the defroster. 
-#### Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/status/defrost
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
-{
-  "active": true
-}
-````
-> Issue the same request but with `"active": false` to turn **off** the defroster. 
-#### Response
-````
-{
-  "value": {
-    "transaction_id": "...",
-    "command": "start_defrost"
-  }
-}
-````
-> If you issued that request as `"active": false` the "command" value would've been returned as "stop_defrost". 
-
-
-### Enabling/Disabling Unplugged Climate Control
-If you have an EV and like to live dangerously, you can let your car prepare the climate for you or run the defroster even when it's not plugged in. To change this setting to allow it to use battery power to do so, here's that:
+## Start/Stop Climate System
+If your vehicle is plugged in, or if you have `unplugged_climate_control_enabled` set to `true`, you can adjust the climate settings of your vehicle with the api. Here's how: 
 
 #### Request
-````
-PUT https://cns.vw.com/mps/v1/vehicles/{YOUR ACCOUNT NUMBER}/settings/unplugged_climate_control
-Cookie:SERVERID=mps-server-001
-X-CarNet-Token:{YOUR TOKEN}
-Content-Type:application/json
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/climate HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
+
 {
-  "enabled": true
+  "active": false,
+  "target_temperature": 77,
+  "email": "[EMAIL ADDRESS]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
 }
-````
-> Issue the same request but with `"enabled": false` to turn **off** the unplugged climate control. 
+```
+
 #### Response
-````
+
+```
 {
-  "value": {
-    "transaction_id": "...",
-    "command": "enable_unplugged_climate_control"
+  "data": {
+    "correlationId": "...",
+    "command": "stop_climate",
+    "result": 0
   }
 }
-````
-> If you issued that request as `"enabled": false` the "command" value would've been returned as "disable_unplugged_climate_control". 
+```
+> To START the climate system simply change the JSON value of `active` from boolen false to boolean true. To keep it active, but just change the target temperature, submit with `active` set to true and change the `target_temperature` to an int value representing fahrenheit degrees. (the api happens to expect fahrenheit degress from me, but that expectation may be localized to me. you might need to submit celsius degrees. expirement with this.)
+
+## Enabling/Disabling Unplugged Climate Control
+If you have an EV and you like to live dangerously, you can let your car prepare the climate for you or run the defroster _even when it's not plugged in_. To change this setting and allow it to use battery power to do so, here's how:
+
+#### Request
+```
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/settings/unplugged_climate_control HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
+
+{
+  "enabled": true,
+  "email": "[EMAIL ADDRESS]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
+}
+```
+
+### Response
+
+```
+{
+  "data": {
+    "correlationId": "...",
+    "command": "enable_unplugged_climate_control",
+    "result": 0
+  }
+}
+```
+> Issue the same request but with `enabled` set to boolean false in order to turn off unplugged climate control. 
+
 ***
-## What I'd Still Like To Figure Out
-- **Minimum Battery Level** I don't understand why my car has some settings that can be changed in the Car-Net mobile app itself, and other settings for which the app has no control, and instead it instructs me to log in to the Car-Net browser app to adjust. "Minimum Battery Level" (the daftly named point to which your battery will charge, before stopping itself) is one such setting that the iOS mobile app can't natively control, but the browser app can. It would be very convenient to figure out how I can use this API to change that setting. I couldn't sniff out an endpoint for it during the mitmproxy process because of the mobile apps lack of an adjustment control for it. It's also strange that neither the /status or /settings endpoint responses include this value at all.
+# And that about wraps up every feature that the Car-Net App offers, at least every one for it offers for EVs. 
+
+### But "it doesn't work for me!" or "my responses look different!", etc.
+The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal account and my personal vehicle, because those are the only ones I have access to. So if these details seem overly ev-centric, that's why. If you'd like me to add features that you see in your Car-Net app but don't see here, send me a message and we'll talk about how we could work that out. 
+
+### Contact Me
+I can't offer any real support for the API itself, because if there's am issue in my documentation, please use the Issues tab above. Obviously this API belongs to VW and I have no actual control over it, but contact me [@varwwwhtml](https://twitter.com/varwwwhtml) or tom AT itsmetomsmith DOT com) if you have questions, ideas, or just want to talk about this subject. I'd love to know if this document helped you make something interesting. 
