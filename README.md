@@ -648,7 +648,6 @@ authorization: Bearer [ACCESS TOKEN]
 ```
 
 ### Response
-
 ```
 {
   "data": {
@@ -660,9 +659,117 @@ authorization: Bearer [ACCESS TOKEN]
 ```
 > Issue the same request but with `enabled` set to boolean false in order to turn off unplugged climate control. 
 
+## Retreiving Vehicle Health Report Data 
+Get the "health report" data for a vehicle.
+
+#### Request
+```
+GET https://b-h-s.spr.us00.p.con-veh.net/vhs/v2/vehicle/[VEHICLE ID] HTTP/2
+authorization: Bearer [ACCESS TOKEN]
+```
+### Response
+```
+{
+  "data": {
+    "odoReadCount": 55000,
+    "odoUOM": "km",
+    "vehicleId": "abcdef12-3456-7890-abcd-abcdef0123456",
+    "vhrTimeStamp": 1597203545000,
+    "overallPriorityCode": "D",
+    "overAllPriorityDescription": "ALL_GOOD",
+    "applicableCategories": [
+      {
+        "categoryCode": "DRVR_ASSIST_SYS",
+        "categoryDesc": "Driver Assistance Systems",
+        "categoryPriorityCode": "D",
+        "diagnosticMessages": []
+      },
+      {
+        "categoryCode": "ELECTRIC_SYS",
+        "categoryDesc": "Electric System",
+        "categoryPriorityCode": "D",
+        "diagnosticMessages": []
+      },
+      {
+        "categoryCode": "ENG_TRANS_PWTR",
+        "categoryDesc": "Engine & Transmission & Powertrain",
+        "categoryPriorityCode": "D",
+        "diagnosticMessages": []
+      },
+      {
+        "categoryCode": "TIRES_BRAKES",
+        "categoryDesc": "Tires & Brakes",
+        "categoryPriorityCode": "D",
+        "diagnosticMessages": []
+      }
+    ],
+    "vhrMaintEvents": [
+      {
+        "distance": 21000,
+        "daysCount": 72,
+        "eventStatusCode": "2",
+        "eventStatusDesc": "Service in",
+        "eventType": "INSPECTION",
+        "eventTypeDesc": "Service inspection",
+        "uom": "km",
+        "uomDesc": "Kilometer"
+      }
+      ...
+    ],
+    "priorityCodeLegend": [
+      {
+        "priorityCode": "A",
+        "priorityDescription": "Red - Stop! Do not drive vehicle, get professional assistance"
+      },
+      {
+        "priorityCode": "B",
+        "priorityDescription": "Yellow - Please see your authorized Volkswagen dealer or an authorized Volkswagen Service Facility for needed repair or adjustment"
+      },
+      {
+        "priorityCode": "C",
+        "priorityDescription": "Blue - Please see your authorized Volkswagen dealer or an authorized Volkswagen Service Facility for regular service and maintenance"
+      },
+      {
+        "priorityCode": "D",
+        "priorityDescription": "Green - Vehicle OK"
+      },
+      {
+        "priorityCode": "E",
+        "priorityDescription": "White"
+      }
+    ]
+  }
+}
+```
+## Requesting a Refresh of the Vehicle Health Report
+If you feel like the health report data has gotten stale, you can explicilty ask to refresh it like this:
+
+#### Request
+```
+POST https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/health/fresh HTTP/2
+content-type: application/json;charset=UTF-8
+x-user-id: [USER ID]
+x-user-agent: mobile-ios
+x-app-uuid: [RANDOM UUID]
+authorization: Bearer [ACCESS TOKEN]
+
+{
+  "email": "[EMAIL ADDRESS]",
+  "tsp_token": "[TSP TOKEN]",
+  "vw_id": "[VW ID]"
+}
+```
+#### Response
+```
+{
+  "data": {
+    "requested": true
+  }
+}
+```
 ***
-## And that's it
-That about wraps up every feature that the Car-Net App offers, at least every one it offers for EVs. 
+## This Is Almost Everything
+There are a few more mappable features of the Car-Net App that I didn't include here, such as setting and enabling Boundary Alerts, Curfew Alerts, Speed Alerts and Valet Alerts. If you really want me to figure those out, let me know and I will. 
 
 ### But "it doesn't work for me!" or "my responses look different!", etc.
 The responses you receive from your own requests to the Car-Net API may look a little different than the examples given here depending on your vehicle, its features, and the status of your Car-Net account. The account I am testing with is my own paid account, and the car attached to it is a 2016 eGolf. Furthermore, these instructions might possibly only work for VW Car-Net users *in North America*, or it may even be limited to *just customers in the United States*. I don't actually know for sure. I can only test these details out with my own personal account and my personal vehicle, because those are the only ones I have access to. So if these details seem overly ev-centric, that's why. If you'd like me to add features that you see in your Car-Net app but don't see here, send me a message and we'll talk about how we could work that out. 
