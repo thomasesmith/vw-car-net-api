@@ -742,7 +742,7 @@ authorization: Bearer [ACCESS TOKEN]
 }
 ```
 ## Requesting a Refresh of the Vehicle Health Report
-If you feel like the health report data has gotten stale, you can explicilty ask to refresh it like this:
+If you feel like the health report data has gotten stale, you can explicitly ask to refresh it like this:
 
 #### Request
 ```
