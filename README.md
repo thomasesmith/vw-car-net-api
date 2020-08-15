@@ -322,8 +322,8 @@ To make commands of a vehicle, you need to request what the api refers to as a T
 #### Request
 ```
 POST https://b-h-s.spr.us00.p.con-veh.net/ss/v1/user/[USER ID]/vehicle/[VEHICLE ID]/session HTTP/2
-> content-type: application/json;charset=UTF-8
-> authorization: Bearer [ACCESS TOKEN]
+content-type: application/json;charset=UTF-8
+authorization: Bearer [ACCESS TOKEN]
 
 {
   "accountNumber": "[TSP ACCOUNT NUMBER]",
@@ -359,7 +359,7 @@ If you want to force the system to re-poll the vehicle and get an updated summar
 PUT a json body like the following (and don't forget these important headers) to refresh the status of the vehicle.
 
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/fresh HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/fresh HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -384,13 +384,13 @@ authorization: Bearer [ACCESS TOKEN]
   }
 }
 ```
-> Just a note about most of the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you were to run this request, then request the status of the car immediately after, you will not find that the status response now indicates the vehicle's doors are now locked. It takes me about 20 seconds for that to actually reflect. You might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond), it is my belief that this is due to the api reaching out to the vehicle's cellular radio, and the upstream latency inherit with that.
+> Just a note about the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you make a command request, then request the status of the car immediately after, you will not find that the status response already reflects whatever command you made. It takes about 20 seconds for the status to change. Also, you might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond); I'd wager that this is due to the API service reaching out to the vehicle's cellular radio, and the upstream latency inherit with that.
 
 
 ## Locking/Unlocking The Doors
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -417,7 +417,7 @@ authorization: Bearer [ACCESS TOKEN]
 And then to unlock...
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -444,7 +444,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Flash Headlights/Honk Horn
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/exterior/horn_and_lights HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/horn_and_lights HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -474,7 +474,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Start/Stop Charging
 #### Request
 ```
-PATCH https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/charging HTTP/2
+PATCH https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/charging HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -506,7 +506,7 @@ authorization: Bearer [ACCESS TOKEN]
 Sometimes you don't want your car to pull all the amps it can from a charger. Here's how to set it to max out that amperage, or how to instruct your vehicle not to use draw at its maximum ability. 
 #### Request 
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/settings/max_charge_current HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/max_charge_current HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -535,7 +535,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Retrieve Your Vehicle's Climate System Settings
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/climate/details HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate/details HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -598,7 +598,7 @@ If your vehicle is plugged in, or if you have `unplugged_climate_control_enabled
 
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/status/climate HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -632,7 +632,7 @@ If you have an EV and you like to live dangerously, you can let your car prepare
 
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/settings/unplugged_climate_control HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/unplugged_climate_control HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -746,7 +746,7 @@ If you feel like the health report data has gotten stale, you can explicitly ask
 
 #### Request
 ```
-POST https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[ACCOUNT NUMBER]/health/fresh HTTP/2
+POST https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/health/fresh HTTP/2
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
