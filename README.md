@@ -5,6 +5,7 @@ This document is intended to be a report of my findings experimenting with the V
 
 This README will stay code-agnostic and just detail the http requests to the API, what is required to include with each request, and a general idea of what you can expect back from the server in response. 
 
+> If you happen to be a PHP developer, please consider using the Composer package I wrote and maintain to make consuming these services easier: [VW Car-Net API Client for PHP](https://packagist.org/packages/thomasesmith/php-vw-car-net). 
 
 ***
 
