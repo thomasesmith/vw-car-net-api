@@ -1,11 +1,12 @@
 # Connecting to the Volkswagen Car-Net API
+
+> If you happen to be a PHP developer, please consider using the Composer package I am maintaining that consumes the Car-Net API according to the guidelines in this document: [An Unofficial PHP Wrapper for the VW Car-Net API](https://packagist.org/packages/thomasesmith/php-vw-car-net). 
+
 ### The Update!
 
-This document is intended to be a report of my findings experimenting with the VW Car-Net app's api since the service's update in October of 2019. How you use this information is your responsibility. **I have no idea if using the API in this manner violates the terms of service of the VW Car-Net service that you agreed to when you signed up. So, [if I were us](https://www.youtube.com/watch?v=pvCQvIrH35s), I would just assume that it does. Proceed at your own risk.**.
+This document is intended to be a report of my findings experimenting with the VW Car-Net app's API since the service's update in October of 2019. How you use this information is your responsibility. **I have no idea if using the API in this manner violates the terms of service of the VW Car-Net service that you agreed to when you signed up. So, [if I were us](https://www.youtube.com/watch?v=pvCQvIrH35s), I would just assume that it does. Proceed at your own risk.**. Obviously, no affiliation or sponsorship is to be implied between myself and Volkswagen AG. Any trademarks, service marks, brand names or logos are the properties of their respective owners and are referred to in this document for educational purposes only.
 
 This README will stay code-agnostic and just detail the http requests to the API, what is required to include with each request, and a general idea of what you can expect back from the server in response. 
-
-> If you happen to be a PHP developer, please consider using the Composer package I wrote and maintain to make consuming these services easier: [VW Car-Net API Client for PHP](https://packagist.org/packages/thomasesmith/php-vw-car-net). 
 
 ***
 
@@ -112,7 +113,7 @@ Finally, this request will actually result in us getting access tokens!
 
 #### Request
 ```
-POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token HTTP/2
+POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token
 content-type: application/x-www-form-urlencoded
 accept: */*
 accept-encoding: gzip, deflate, br
@@ -223,7 +224,7 @@ Now you can begin poking around.  Start by getting your vehicle's current "statu
 
 #### Request
 ```
-GET https://b-h-s.spr.us00.p.con-veh.net/rvs/v1/vehicle/[VEHICLE ID] HTTP/2
+GET https://b-h-s.spr.us00.p.con-veh.net/rvs/v1/vehicle/[VEHICLE ID]
 authorization: Bearer [ACCESS TOKEN]
 ```
 #### Response
@@ -295,7 +296,7 @@ After 30 minutes, your `access_token` and `id_token` will expire. You will need 
 
 #### Request
 ```
-POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token HTTP/2
+POST https://b-h-s.spr.us00.p.con-veh.net/oidc/v1/token
 content-type: application/x-www-form-urlencoded
 accept: */*
 
@@ -322,7 +323,7 @@ To make commands of a vehicle, you need to request what the api refers to as a T
 
 #### Request
 ```
-POST https://b-h-s.spr.us00.p.con-veh.net/ss/v1/user/[USER ID]/vehicle/[VEHICLE ID]/session HTTP/2
+POST https://b-h-s.spr.us00.p.con-veh.net/ss/v1/user/[USER ID]/vehicle/[VEHICLE ID]/session
 content-type: application/json;charset=UTF-8
 authorization: Bearer [ACCESS TOKEN]
 
@@ -360,7 +361,7 @@ If you want to force the system to re-poll the vehicle and get an updated summar
 PUT a json body like the following (and don't forget these important headers) to refresh the status of the vehicle.
 
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/fresh HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/fresh
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -385,13 +386,15 @@ authorization: Bearer [ACCESS TOKEN]
   }
 }
 ```
-> Just a note about the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you make a command request, then request the status of the car immediately after, you will not find that the status response already reflects whatever command you made. It takes about 20 seconds for the status to change. Also, you might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond); I'd wager that this is due to the API service reaching out to the vehicle's cellular radio, and the upstream latency inherit with that.
+> Just a note about the command requests you can make: getting a response back doesn't mean your request has already been fulfilled in the real world. It just spits back an affirmative response to it. If you make a command request, then request the status of the car immediately after, you will not find that the status response already reflects whatever command you made. It takes about 20 seconds for the status to change. Also, you might notice that the API itself responds slowly to PUT and PATCH command requests (they take sometimes 10 seconds to respond); I'd wager that this is due to the API service reaching out to the vehicle's cellular radio, and the upstream latency inherent with that.
+
+> BE CAREFUL with how often you issue requests that include a tsp token. All of the endpoints that require tsp token value impose a strict request rate limit. You will begin getting `429 Too Many Requests` responses if you exceed that limit. I haven't yet tested to figure out exactly what that limit is or how long it takes, but I do know the limit isn't imposed just on your token set, it is imposed on your whole account. 
 
 
 ## Locking/Unlocking The Doors
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -418,7 +421,7 @@ authorization: Bearer [ACCESS TOKEN]
 And then to unlock...
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/doors
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -445,7 +448,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Flash Headlights/Honk Horn
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/horn_and_lights HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/exterior/horn_and_lights
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -475,7 +478,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Start/Stop Charging
 #### Request
 ```
-PATCH https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/charging HTTP/2
+PATCH https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/charging
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -507,7 +510,7 @@ authorization: Bearer [ACCESS TOKEN]
 Sometimes you don't want your car to pull all the amps it can from a charger. Here's how to set it to max out that amperage, or how to instruct your vehicle not to use draw at its maximum ability. 
 #### Request 
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/max_charge_current HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/max_charge_current
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -536,7 +539,7 @@ authorization: Bearer [ACCESS TOKEN]
 ## Retrieve Your Vehicle's Climate System Settings
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate/details HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate/details
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -567,7 +570,7 @@ authorization: Bearer [ACCESS TOKEN]
 If your vehicle is plugged in, or if you have `unplugged_climate_control_enabled` set to `true`, you can remotely turn off or on the defroster. 
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/46319909/status/defrost HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/46319909/status/defrost
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -599,7 +602,7 @@ If your vehicle is plugged in, or if you have `unplugged_climate_control_enabled
 
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/status/climate
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -626,14 +629,14 @@ authorization: Bearer [ACCESS TOKEN]
   }
 }
 ```
-> To START the climate system simply change the JSON value of `active` from boolen false to boolean true. To keep it active, but just change the target temperature, submit with `active` set to true and change the `target_temperature` to an int value representing fahrenheit degrees. (the api happens to expect fahrenheit degrees from me, but that expectation may be localized to me. you might need to submit celsius degrees. experiment with this.)
+> To START the climate system simply change the JSON value of `active` from boolean false to boolean true. To keep it active, but just change the target temperature, submit with `active` set to true and change the `target_temperature` to an int value representing Fahrenheit degrees. (the api happens to expect Fahrenheit degrees from me, but that expectation may be localized to me. you might need to submit celsius degrees. experiment with this.)
 
 ## Enabling/Disabling Unplugged Climate Control
 If you have an EV and you like to live dangerously, you can let your car prepare the climate for you or run the defroster _even when it's not plugged in_. To change this setting and allow it to use battery power to do so, here's how:
 
 #### Request
 ```
-PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/unplugged_climate_control HTTP/2
+PUT https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/settings/unplugged_climate_control
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
@@ -660,12 +663,12 @@ authorization: Bearer [ACCESS TOKEN]
 ```
 > Issue the same request but with `enabled` set to boolean false in order to turn off unplugged climate control. 
 
-## Retreiving Vehicle Health Report Data 
+## Retrieving Vehicle Health Report Data 
 Get the "health report" data for a vehicle.
 
 #### Request
 ```
-GET https://b-h-s.spr.us00.p.con-veh.net/vhs/v2/vehicle/[VEHICLE ID] HTTP/2
+GET https://b-h-s.spr.us00.p.con-veh.net/vhs/v2/vehicle/[VEHICLE ID]
 authorization: Bearer [ACCESS TOKEN]
 ```
 ### Response
@@ -747,7 +750,7 @@ If you feel like the health report data has gotten stale, you can explicitly ask
 
 #### Request
 ```
-POST https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/health/fresh HTTP/2
+POST https://b-h-s.spr.us00.p.con-veh.net/mps/v1/vehicles/[TSP ACCOUNT NUMBER]/health/fresh
 content-type: application/json;charset=UTF-8
 x-user-id: [USER ID]
 x-user-agent: mobile-ios
