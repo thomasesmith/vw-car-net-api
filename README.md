@@ -71,6 +71,7 @@ content-type: application/x-www-form-urlencoded
 _csrf=[CSRF]&relayState=[RELAY STATE]&email=[YOUR CAR NET EMAIL ADDRESS]&hmac=[HMAC]
 ```
 For this one, we have to include 4 form values in the request. `_csrf`, `relayState`, and `hmac` should equal the values we just copied from the last request's response, but the `email` value should be the set to whatever email address you use to log in to your Car-Net account. 
+> Take note of the `content-type` header value in all of these authentication POSTs. Always use url-encoded form posts. Using multipart for these will return an error of no description. If you're getting errors here, make sure your `content-type` header value is set to `application/x-www-form-urlencoded`.
 
 #### Response 
 Again, this will result in a series of `30x` redirects, but if you follow them all, it will finally settle on the form where you would be submitting your password. You again need to scrape some values from the markup of this response and grab one more value. Find this: 
