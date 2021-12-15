@@ -1,3 +1,6 @@
+# 🚨 Abandon Alert! 🚨
+I sold my Volkswagen and of course am no longer a car-net customer, so I can no longer maintain this repo. It will be left here for reference. See "Contact" at the bottom of this document if you have any questions with your own project that you think I can help answer. 
+
 # Connecting to the Volkswagen Car-Net API
 
 > If you happen to be a PHP developer, please consider using the Composer package I am maintaining that consumes the Car-Net API according to the guidelines in this document: [An Unofficial PHP Wrapper for the VW Car-Net API](https://packagist.org/packages/thomasesmith/php-vw-car-net). 
